@@ -5,21 +5,70 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-class Item(BaseModel):
-    name: str
-    price: float
-    is_offer: Union[bool, None] = None
+class Todo(BaseModel):
+    id:int
+    title: str
+    completed:bool=False
+
+class TodoBody(BaseModel):
+    title: str
+
+todos:list[Todo]=[
+    {
+        "id":1,
+        "title":"Learn FastAPI",
+        "completed":False
+    },
+    {
+        "id":2,
+        "title":"Learn Golang",
+        "completed":False
+    }
+]
 
 
 @app.get("/")
-def read_root():
-    return {"Hello": "World"}
+async def root():
+    return {"message": "Hello World, Server is running"}
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+@app.get("/todos")
+async def root(q:Union[str,None]=None):
+    print(q)
+    if q:
+        return [todo for todo in todos if q in todo["title"].lower()]
+    return todos
 
-@app.put("/items/{item_id}")
-def update_item(item_id: int, item: Item):
-    return {"item_name": item.name, "item_id": item_id}
+@app.post("/todos/new")
+async def create_item(todo:TodoBody) -> dict:
+        todos.append({
+            "id":len(todos)+1,
+            "title":todo.title,
+            "completed":False
+        })
+        return {"message": "Todo added"}
+
+
+@app.delete("/todos/delete")
+async def delete_item(id:str) -> dict:
+        try:
+             if(int(id)>=len(todos)):
+                return {"message": "Todo not found"}
+             else:
+                todos.remove([todo for todo in todos if todo["id"]==int(id)][0])
+                return {"message": "Todo deleted"}
+        except:
+            return {"message": "Some error occured"}
+
+
+@app.put("/todos/update")
+async def update_item(body:TodoBody, id:str) -> dict:
+  newTodos=[]
+  for i in len(todos):
+      if(todos[i].id==int(id)):
+        newTodos.append({"id":todos[i].id,"title":body.title,"completed":todos[i].completed})
+      else:
+        newTodos.append(todos[i])
+  todos.clear()
+  todos.extend(newTodos)
+  return {"message": "Todo Updated"}
